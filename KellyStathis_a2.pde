@@ -100,39 +100,10 @@ void drawAxes() {
   for (int j = 0; j < numCols; j++) {
     // Draw axis
     line(axisX, topOffset, axisX, height-bottomOffset);
-    
-    /*
-    // Calculate increment
-    int increment = colMaxes[j] / 10;
-    if (increment > 10) {
-      increment = increment - increment % 10;
-    }
-    if (increment == 0 && (colMaxes[j] - colMins[j] > 1)) {
-      increment = 1;
-    }*/
-    
-    /*
-    // Draw tick marks
-    int tickValue = 0;
-    int i = 0;
-    float tickDistance = (((float)increment) / colMaxes[j]) * (height - bottomOffset - topOffset);
-    if (increment != 0) {
-      while (tickValue <= colMaxes[j]) {
-        float tickHeight = (i*tickDistance) + topOffset;
-        line(tickLeftEdge, tickHeight, tickRightEdge, tickHeight);
-        tickValue += increment;
-        i++;
-      }
-      if (tickValue > colMaxes[j]) {
-        float tickHeight = height - bottomOffset;
-        line(tickLeftEdge, tickHeight, tickRightEdge, tickHeight);
-      }
-    }
-    */
-    //else {
-      line(tickLeftEdge, height - bottomOffset, tickRightEdge, height - bottomOffset);
-      line(tickLeftEdge, topOffset, tickRightEdge, topOffset);
-    //}
+
+    // Draw top and bottom tick marks
+    line(tickLeftEdge, height - bottomOffset, tickRightEdge, height - bottomOffset);
+    line(tickLeftEdge, topOffset, tickRightEdge, topOffset);
     
     // Label axis with name
     textAlign(CENTER);
@@ -173,8 +144,6 @@ void drawAxes() {
 }
 
 void drawLines() {
-  // FIXME Use PGraphics
-  
   // Initialize highlighted rows array to 0s
   for (int i = 0; i < numRows; i++) {
     highlightedRows[i] = 0;
