@@ -22,6 +22,10 @@ int[] highlightedRows;
 // Axis orientations
 boolean[] positiveAxis;
 
+// Drawing rectangle
+int mouseXCoord, mouseYCoord, rectWidth, rectHeight;
+boolean mouseDragged = false;
+
 void setup() {
   // Open the data file
   table = loadTable(path);
@@ -85,6 +89,13 @@ void drawAxes() {
   int tickLeftEdge = axisX - 5;
   int tickRightEdge = axisX + 5;
   strokeWeight(1);
+  
+  // Draw box
+  if (mouseDragged) {
+    rectMode(CORNER);
+    fill(255,255,255, 0);
+    rect(mouseXCoord, mouseYCoord, rectWidth, rectHeight);
+  }
  
   for (int j = 0; j < numCols; j++) {
     // Draw axis
@@ -203,18 +214,59 @@ void drawLines() {
       }
       line(Px, Py, Qx, Qy);
       
+      // Boolean for highlighting
+      boolean highlight = false;
+      
       // Hovering
       float m = (float)(Py-Qy)/(Px-Qx);
       float b = Py-m*Px;
       if ((Math.abs(mouseY - ((m*mouseX)+b)) < 3) && ((Qy <= Py && mouseY <= Py && mouseY >= Qy) || (Py <= Qy && mouseY <= Qy && mouseY >= Py)) && 
         ((Qx <= Px && mouseX <= Px && mouseX >= Qx) || (Px <= Qx && mouseX <= Qx && mouseX >= Px))) {
+        highlight = true;
+      }
+      
+      // Box intersection
+      // Equation of line: y = mx+b
+      // Equations from box; y = mouseXCoord, y = mouseXCoord + rectWidth, x = mouseYCoord, x = mouseYCoord + rectHeight
+      if (mouseDragged) {
+        boolean intersect = false;
+        if (!intersect) {
+          // Line: y = mouseYCoord
+          float yTest1 = mouseYCoord;
+          float xResult1 = (yTest1 - b)/m;
+          intersect = checkPointRange(mouseXCoord, mouseXCoord + rectWidth, xResult1) && checkSegmentRange(Px, Py, Qx, Qy, xResult1, yTest1);
+        }
+        if (!intersect) {
+          // Line: y = mouseYCoord + rectHeight
+          float yTest2 = mouseYCoord + rectHeight;
+          float xResult2 = (yTest2 - b)/m;
+          intersect = checkPointRange(mouseXCoord, mouseXCoord + rectWidth, xResult2) && checkSegmentRange(Px, Py, Qx, Qy, xResult2, yTest2);
+        }
+        if (!intersect) {
+          // Line: x = mouseXCoord
+          float xTest1 = mouseXCoord;
+          float yResult1 = xTest1*m + b;
+          intersect = checkPointRange(mouseYCoord, mouseYCoord + rectHeight, yResult1) && checkSegmentRange(Px, Py, Qx, Qy, xTest1, yResult1);
+        }
+        if (!intersect) {
+          // Line: x = mouseXCoord + rectWidth
+          float xTest2 = mouseXCoord + rectWidth;
+          float yResult2 = xTest2*m + b;
+          intersect = checkPointRange(mouseYCoord, mouseYCoord + rectHeight, yResult2) && checkSegmentRange(Px, Py, Qx, Qy, xTest2, yResult2);
+        }
+        if (intersect) {
+          highlight = true;
+        }
+      }
+      
+      
+      if (highlight) {
         highlightedRows[i] = 1;
         drawHighlightedLinesSubset(i, 0, j-1);
         strokeWeight(3);
-        fill(255, 0, 0); // FIXME Why doesn't fill color work?
         line(Px, Py, Qx, Qy);
       }
-      
+
       // Move forward to next column
       Px = Qx;
       Qx += distanceBetweenAxes;
@@ -261,4 +313,62 @@ void mouseClicked() {
       }
     }
   }  
+}
+
+void mousePressed() {
+   // For use in mouseDragged
+  mouseXCoord = mouseX;
+  mouseYCoord = mouseY;
+  if (mouseDragged) {
+    mouseDragged = false;
+  }
+}
+
+void mouseReleased() {
+  
+}
+
+void mouseDragged() 
+{
+  // Only called while mouse is being moved, even if still pressed
+  mouseDragged = true;
+  rectWidth = mouseX-mouseXCoord;
+  rectHeight = mouseY-mouseYCoord;
+}
+
+
+boolean checkSegmentRange(float Px, float Py, float Qx, float Qy, float x, float y) {
+  boolean xInRange = false, yInRange = false;
+  if (Px <= Qx && x >= Px && x <= Qx) {
+      xInRange = true;
+  }
+  else if (Px >= Qx && x <= Px && x >= Qx) {
+    xInRange = true;
+  }
+  if (Py <= Qy && y >= Py && y <= Qy) {
+    yInRange = true;
+  }
+  else if (Py >= Qy && y <= Py && y >= Qy) {
+    yInRange = true;
+  }
+  return (xInRange && yInRange);
+}
+
+boolean checkPointRange(float a, float b, float check) {
+  if (a <= b) {
+    if (check >= a && check <= b) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    if (check < a && check > b) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
 }
