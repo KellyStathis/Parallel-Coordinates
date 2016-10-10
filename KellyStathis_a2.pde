@@ -83,7 +83,6 @@ void draw() {
 }
 
 void drawAxes() {
-  // FIXME Use PGraphics
   distanceBetweenAxes = (width - leftOffset - rightOffset) / (numCols-1);
   int axisX = leftOffset;
   int tickLeftEdge = axisX - 5;
@@ -99,7 +98,11 @@ void drawAxes() {
  
   for (int j = 0; j < numCols; j++) {
     // Draw axis
-    line(axisX, topOffset, axisX, height-bottomOffset);
+    //line(axisX, topOffset, axisX, height-bottomOffset);
+    // Draw rectangle axes
+    rectMode(CORNER);
+    fill(211,211,211,100);
+    rect(tickLeftEdge, topOffset, tickRightEdge - tickLeftEdge, height-bottomOffset- topOffset);
 
     // Draw top and bottom tick marks
     line(tickLeftEdge, height - bottomOffset, tickRightEdge, height - bottomOffset);
@@ -176,7 +179,7 @@ void drawLines() {
         Qy = height - bottomOffset -(Qfrac * (height - bottomOffset - topOffset));
       }
       if (highlightedRows[i] == 1) {
-        strokeWeight(3);
+        strokeWeight(2);
       }
       else {
         strokeWeight(1);
@@ -232,7 +235,7 @@ void drawLines() {
       if (highlight) {
         highlightedRows[i] = 1;
         drawHighlightedLinesSubset(i, 0, j-1);
-        strokeWeight(3);
+        strokeWeight(2);
         line(Px, Py, Qx, Qy);
       }
 
@@ -268,12 +271,13 @@ void drawHighlightedLinesSubset(int i, int first, int last) {
       else {
         Qy = height - bottomOffset -(Qfrac * (height - bottomOffset - topOffset));
       }
-      strokeWeight(3);
+      strokeWeight(2);
       line(Px, Py, Qx, Qy);
   }
 }
 
 void mouseClicked() {
+  // Switch axis orientation
   if (Math.abs(mouseY - (height-bottomOffset+40)) <= 12/2) {
     for (int j = 0; j < numCols; j++) {
       int axisX = leftOffset + j*distanceBetweenAxes;
@@ -281,7 +285,12 @@ void mouseClicked() {
         positiveAxis[j] = !positiveAxis[j];
       }
     }
-  }  
+  }
+  
+  // FIXME Highlight based on single axis:
+  // - Figure out which rect was clicked
+  // - Set boolean for that axis to true, all others false
+  
 }
 
 void mousePressed() {
