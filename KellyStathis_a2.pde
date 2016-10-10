@@ -17,7 +17,7 @@ int distanceBetweenAxes;
 PGraphics axes;
 
 // Highlighted lines
-int[] highlightedRows;
+boolean[] highlightedRows;
 
 // Axis orientations
 boolean[] positiveAxis;
@@ -36,7 +36,7 @@ void setup() {
   colNames = new String[numCols];
   colMins = new int[numCols];
   colMaxes = new int[numCols];
-  highlightedRows = new int[numRows];
+  highlightedRows = new boolean[numRows];
   positiveAxis = new boolean[numCols];
  
   println("numCols: " + numCols);
@@ -51,7 +51,7 @@ void setup() {
   
   // Initialize highlighted rows array to 0s
   for (int i = 0; i < numRows; i++) {
-    highlightedRows[i] = 0;
+    highlightedRows[i] = false;
   }
   
   // Get numerical (integer) data
@@ -149,7 +149,7 @@ void drawAxes() {
 void drawLines() {
   // Initialize highlighted rows array to 0s
   for (int i = 0; i < numRows; i++) {
-    highlightedRows[i] = 0;
+    highlightedRows[i] = false;
   }
 
   // Draw lines
@@ -178,7 +178,7 @@ void drawLines() {
       else {
         Qy = height - bottomOffset -(Qfrac * (height - bottomOffset - topOffset));
       }
-      if (highlightedRows[i] == 1) {
+      if (highlightedRows[i]) {
         strokeWeight(2);
       }
       else {
@@ -233,7 +233,7 @@ void drawLines() {
       
       
       if (highlight) {
-        highlightedRows[i] = 1;
+        highlightedRows[i] = true;
         drawHighlightedLinesSubset(i, 0, j-1);
         strokeWeight(2);
         line(Px, Py, Qx, Qy);
