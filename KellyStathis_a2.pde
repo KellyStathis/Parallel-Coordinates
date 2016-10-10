@@ -19,6 +19,10 @@ PGraphics axes;
 // Highlighted lines
 boolean[] highlightedRows;
 boolean[] highlightedCols;
+color[] gradientColors;
+int highlightedColumn = -1;
+boolean highlighted = false;
+color[] currentColors;
 
 // Axis orientations
 boolean[] positiveAxis;
@@ -40,6 +44,8 @@ void setup() {
   highlightedRows = new boolean[numRows];
   highlightedCols = new boolean[numCols];
   positiveAxis = new boolean[numCols];
+  gradientColors = new color[numRows];
+  currentColors = new color[numRows];
  
   println("numCols: " + numCols);
   
@@ -52,9 +58,18 @@ void setup() {
     highlightedCols[j] = false; // no highlighted cols to start
   }
   
-  // Initialize highlighted rows array to 0s
+  // Initialize highlighted rows array to 0s; initialize gradient colors
+  int r = 0;
+  int b = 255;
+  int interval = 255/(numRows-1);
+  println("interval: " + interval);
   for (int i = 0; i < numRows; i++) {
     highlightedRows[i] = false;
+    gradientColors[i] = color(r, 0, b);
+    //println("(r,b) = (" + r + "," + b + ")");
+    r += interval;
+    b -= interval;
+    
   }
   
   // Get numerical (integer) data
@@ -96,6 +111,7 @@ void drawAxes() {
   if (mouseDragged) {
     rectMode(CORNER);
     fill(255,255,255, 0);
+    stroke(0,0,0);
     rect(mouseXCoord, mouseYCoord, rectWidth, rectHeight);
   }
  
@@ -104,7 +120,13 @@ void drawAxes() {
     //line(axisX, topOffset, axisX, height-bottomOffset);
     // Draw rectangle axes
     rectMode(CORNER);
-    fill(211,211,211,100);
+    if (highlightedCols[j]) {
+      fill(240,230,140,100);
+    }
+    else {  
+      fill(211,211,211,100);
+    }
+    stroke(0,0,0);
     rect(tickLeftEdge, topOffset, tickRightEdge - tickLeftEdge, height-bottomOffset-topOffset);
 
     // Draw top and bottom tick marks
@@ -187,6 +209,16 @@ void drawLines() {
       else {
         strokeWeight(1);
       }
+      
+      // Use highlighted color if applicable
+      if (highlighted) {
+        stroke(currentColors[i]);
+      }
+      else {
+        stroke(0,0,0);
+      }
+      
+      // Draw line
       line(Px, Py, Qx, Qy);
       
       // Boolean for highlighting
@@ -239,6 +271,7 @@ void drawLines() {
         highlightedRows[i] = true;
         drawHighlightedLinesSubset(i, 0, j-1);
         strokeWeight(2);
+        
         line(Px, Py, Qx, Qy);
       }
 
@@ -289,6 +322,8 @@ void mouseClicked() {
       }
     }
   }
+  
+  // Detect selected column (axis)
   if (topOffset <= mouseY && mouseY <= height-bottomOffset) {
     int j = 0;
     int foundAt = -1;
@@ -301,12 +336,44 @@ void mouseClicked() {
       }
       j++;
     }
-    for (j = 0; j < numCols; j++) {
-      highlightedCols[j] = false;
-    }
     if (found) {
-      highlightedCols[foundAt]= true;
-      println(foundAt);
+      for (j = 0; j < numCols; j++) {
+        highlightedCols[j] = false;
+      }
+      if (foundAt != highlightedColumn) {
+        highlightedCols[foundAt]= true;
+        highlighted = true;
+        highlightedColumn = foundAt;
+        
+        // Rearrange colors
+        // Make temp arrays used to assign colors
+        int[] tempIndex = new int[numRows];
+        int[] tempData = new int[numRows];
+        for (int i = 0; i < numRows; i++) {
+          tempIndex[i] = i;
+          tempData[i] = tableData[i][foundAt];
+        }
+        for (int i = 1; i < numRows; i++) {
+          int k = i;
+          while (k > 0 && tempData[k-1] > tempData[k]) {
+            int tempIndexK = tempIndex[k];
+            int tempDataK = tempData[k];
+            tempIndex[k] = tempIndex[k-1];
+            tempIndex[k-1] = tempIndexK;
+            tempData[k] = tempData[k-1];
+            tempData[k-1] = tempDataK;
+            k -= 1;
+          }
+        }
+        // Assign the colors
+        for (int i = 0; i < numRows; i++) {
+          currentColors[tempIndex[i]] = gradientColors[i];
+        }
+      }
+      else {
+        highlighted = false;
+        highlightedColumn = -1;
+      }
     }
   }
 }
