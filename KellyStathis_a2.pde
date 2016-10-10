@@ -18,6 +18,7 @@ PGraphics axes;
 
 // Highlighted lines
 boolean[] highlightedRows;
+boolean[] highlightedCols;
 
 // Axis orientations
 boolean[] positiveAxis;
@@ -37,6 +38,7 @@ void setup() {
   colMins = new int[numCols];
   colMaxes = new int[numCols];
   highlightedRows = new boolean[numRows];
+  highlightedCols = new boolean[numCols];
   positiveAxis = new boolean[numCols];
  
   println("numCols: " + numCols);
@@ -47,6 +49,7 @@ void setup() {
     colMins[j] = Integer.MAX_VALUE;
     colMaxes[j] = Integer.MIN_VALUE;
     positiveAxis[j] = false; // maximum at top
+    highlightedCols[j] = false; // no highlighted cols to start
   }
   
   // Initialize highlighted rows array to 0s
@@ -102,7 +105,7 @@ void drawAxes() {
     // Draw rectangle axes
     rectMode(CORNER);
     fill(211,211,211,100);
-    rect(tickLeftEdge, topOffset, tickRightEdge - tickLeftEdge, height-bottomOffset- topOffset);
+    rect(tickLeftEdge, topOffset, tickRightEdge - tickLeftEdge, height-bottomOffset-topOffset);
 
     // Draw top and bottom tick marks
     line(tickLeftEdge, height - bottomOffset, tickRightEdge, height - bottomOffset);
@@ -286,11 +289,26 @@ void mouseClicked() {
       }
     }
   }
-  
-  // FIXME Highlight based on single axis:
-  // - Figure out which rect was clicked
-  // - Set boolean for that axis to true, all others false
-  
+  if (topOffset <= mouseY && mouseY <= height-bottomOffset) {
+    int j = 0;
+    int foundAt = -1;
+    boolean found = false;
+    while (j < numCols && !found) {
+      int axisCenter = leftOffset+(j*distanceBetweenAxes);
+      if (axisCenter-5 <= mouseX && mouseX <= axisCenter+5) {
+        found = true;
+        foundAt = j;
+      }
+      j++;
+    }
+    for (j = 0; j < numCols; j++) {
+      highlightedCols[j] = false;
+    }
+    if (found) {
+      highlightedCols[foundAt]= true;
+      println(foundAt);
+    }
+  }
 }
 
 void mousePressed() {
@@ -300,10 +318,6 @@ void mousePressed() {
   if (mouseDragged) {
     mouseDragged = false;
   }
-}
-
-void mouseReleased() {
-  
 }
 
 void mouseDragged() 
