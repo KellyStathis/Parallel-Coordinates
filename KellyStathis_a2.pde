@@ -13,9 +13,6 @@ int topOffset = 50;
 int bottomOffset = 60;
 int distanceBetweenAxes;
 
-// PGraphics (layers)
-PGraphics axes;
-
 // Highlighted lines
 boolean[] highlightedRows;
 boolean[] highlightedCols;
@@ -25,36 +22,37 @@ boolean highlighted = false;
 color[] currentColors;
 
 // Axis orientations
-boolean[] positiveAxis;
+boolean[] positiveAxisBottom; // true -> maximum at bottom, false -> maximum at top
 
 // Drawing rectangle
 int mouseXCoord, mouseYCoord, rectWidth, rectHeight;
-boolean mouseDragged = false;
+boolean drawRectangle = false;
 
 void setup() {
   // Open the data file
   table = loadTable(path);
+  // Get number of rows and columns
   numRows = table.getRowCount() - 1;
   numCols = table.getColumnCount() - 1;
+  // Store data info
   tableData = new int[numRows][numCols];
   rowNames = new String[numRows];
   colNames = new String[numCols];
   colMins = new int[numCols];
   colMaxes = new int[numCols];
+  // Initialize arrays for highlighting lines and axis orientation
   highlightedRows = new boolean[numRows];
   highlightedCols = new boolean[numCols];
-  positiveAxis = new boolean[numCols];
   gradientColors = new color[numRows];
   currentColors = new color[numRows];
- 
-  println("numCols: " + numCols);
+  positiveAxisBottom = new boolean[numCols];
   
-  // Get column headers and initialize column min/max and orientation arrays
+  // Get column headers and initialize colMins, colMaxes, and positiveAxis (orientation) arrays
   for (int j = 0; j < numCols; j++) {
     colNames[j] = table.getString(0, j+1);
-    colMins[j] = Integer.MAX_VALUE;
-    colMaxes[j] = Integer.MIN_VALUE;
-    positiveAxis[j] = false; // maximum at top
+    colMins[j] = Integer.MAX_VALUE; // until min is found
+    colMaxes[j] = Integer.MIN_VALUE; // until max is found
+    positiveAxisBottom[j] = false; // maximum at top
     highlightedCols[j] = false; // no highlighted cols to start
   }
   
@@ -66,13 +64,11 @@ void setup() {
   for (int i = 0; i < numRows; i++) {
     highlightedRows[i] = false;
     gradientColors[i] = color(r, 0, b);
-    //println("(r,b) = (" + r + "," + b + ")");
     r += interval;
     b -= interval;
-    
   }
   
-  // Get numerical (integer) data
+  // Get numerical (integer) data and populate colMins and colMaxes arrays
   for (int i = 0; i < numRows; i++) {
     // Get row names
     rowNames[i] = table.getString(i+1, 0);
@@ -95,43 +91,35 @@ void setup() {
 }
 
 void draw() {
-  background(255, 255, 255);
+  background(255, 255, 255); // white background
   drawAxes();
   drawLines();
+  if (drawRectangle) {
+     drawRectangle();
+  }
 }
 
 void drawAxes() {
   distanceBetweenAxes = (width - leftOffset - rightOffset) / (numCols-1);
   int axisX = leftOffset;
-  int tickLeftEdge = axisX - 5;
-  int tickRightEdge = axisX + 5;
+  int axisLeftEdge = axisX - 5;
+  int axisRightEdge = axisX + 5;
   strokeWeight(1);
   
-  // Draw box
-  if (mouseDragged) {
-    rectMode(CORNER);
-    fill(255,255,255, 0);
-    stroke(0,0,0);
-    rect(mouseXCoord, mouseYCoord, rectWidth, rectHeight);
-  }
- 
   for (int j = 0; j < numCols; j++) {
     // Draw axis
-    //line(axisX, topOffset, axisX, height-bottomOffset);
+    stroke(128,128,128);
+    line(axisX, topOffset, axisX, height-bottomOffset);
     // Draw rectangle axes
-    rectMode(CORNER);
     if (highlightedCols[j]) {
-      fill(240,230,140,100);
+      fill(240,230,140,100); // fill yellow if highlihgted
     }
     else {  
-      fill(211,211,211,100);
+      fill(211,211,211,100); // fill grey if not highlihgted
     }
-    stroke(0,0,0);
-    rect(tickLeftEdge, topOffset, tickRightEdge - tickLeftEdge, height-bottomOffset-topOffset);
-
-    // Draw top and bottom tick marks
-    line(tickLeftEdge, height - bottomOffset, tickRightEdge, height - bottomOffset);
-    line(tickLeftEdge, topOffset, tickRightEdge, topOffset);
+    stroke(255,255,255);
+    rectMode(CORNER);
+    rect(axisLeftEdge, topOffset, axisRightEdge - axisLeftEdge, height-bottomOffset-topOffset);
     
     // Label axis with name
     textAlign(CENTER);
@@ -139,22 +127,23 @@ void drawAxes() {
     fill(0,0,0);
     text(colNames[j], axisX, height-bottomOffset+30);
     
-    // Label axis with max and min
-    if (positiveAxis[j]) {
+    // Label axis with max and min values
+    if (positiveAxisBottom[j]) { // if positive is on bottom
       text(colMins[j], axisX, topOffset-5);
       text(colMaxes[j], axisX, height-bottomOffset+15);
     }
-    else {
+    else { // if positive is on top
       text(colMaxes[j], axisX, topOffset-5);
       text(colMins[j], axisX, height-bottomOffset+15);
     }
     
     // Draw +/- button
     rectMode(CENTER);
-    fill(255,255,255);
+    stroke(105,105,105);
+    fill(240,240,240);
     rect(axisX, height-bottomOffset+40, 12, 12, 5);
     String buttonText;
-    if (positiveAxis[j]) {
+    if (positiveAxisBottom[j]) {
       buttonText = "+";
     }
     else {
@@ -166,8 +155,8 @@ void drawAxes() {
     
     // Move forward to next column
     axisX += distanceBetweenAxes;
-    tickLeftEdge += distanceBetweenAxes;
-    tickRightEdge += distanceBetweenAxes;
+    axisLeftEdge += distanceBetweenAxes;
+    axisRightEdge += distanceBetweenAxes;
   }
 }
 
@@ -183,21 +172,22 @@ void drawLines() {
     float Qx = leftOffset + distanceBetweenAxes;
     float Py, Qy = 0;
     for (int j = 0; j < numCols-1; j++) {
-      // FIXME What if max and min are the same? Dividing by 0
-      if (j == 0) {
+      // Calculate Py
+      if (j == 0) { // first column, need to initialize Py
         float Pfrac = ((float)tableData[i][j] - colMins[j]) / (colMaxes[j]- colMins[j]);
-        if (positiveAxis[j]) {
+        if (positiveAxisBottom[j]) {
           Py = Pfrac * (height - bottomOffset - topOffset) + topOffset;
         }
         else {
           Py = height - bottomOffset - (Pfrac * (height - bottomOffset - topOffset));
         }
       }
-      else {
+      else { // use previous Qy as Py
         Py = Qy;
       }
+      // Calculate Qy
       float Qfrac = ((float)tableData[i][j+1] - colMins[j+1]) / (colMaxes[j+1] - colMins[j+1]);
-      if (positiveAxis[j+1]) {
+      if (positiveAxisBottom[j+1]) {
         Qy = Qfrac * (height - bottomOffset - topOffset) + topOffset;
       }
       else {
@@ -221,10 +211,10 @@ void drawLines() {
       // Draw line
       line(Px, Py, Qx, Qy);
       
-      // Boolean for highlighting
+      // Detemine highlighted rows - initial boolean for highlighting
       boolean highlight = false;
       
-      // Hovering
+      // Highlighting from hovering:
       float m = (float)(Py-Qy)/(Px-Qx);
       float b = Py-m*Px;
       if ((Math.abs(mouseY - ((m*mouseX)+b)) < 3) && ((Qy <= Py && mouseY <= Py && mouseY >= Qy) || (Py <= Qy && mouseY <= Qy && mouseY >= Py)) && 
@@ -232,10 +222,10 @@ void drawLines() {
         highlight = true;
       }
       
-      // Box intersection
+      // Highlighting from box intersection:
       // Equation of line: y = mx+b
       // Equations from box; y = mouseXCoord, y = mouseXCoord + rectWidth, x = mouseYCoord, x = mouseYCoord + rectHeight
-      if (mouseDragged) {
+      if (drawRectangle) {
         boolean intersect = false;
         if (!intersect) {
           // Line: y = mouseYCoord
@@ -266,12 +256,11 @@ void drawLines() {
         }
       }
       
-      
+      // If row should be highlighted
       if (highlight) {
-        highlightedRows[i] = true;
-        drawHighlightedLinesSubset(i, 0, j-1);
+        highlightedRows[i] = true; // will highlight everything going forward
+        drawHighlightedLinesSubset(i, 0, j-1); // go back and highlight segments from previous columns
         strokeWeight(2);
-        
         line(Px, Py, Qx, Qy);
       }
 
@@ -287,10 +276,9 @@ void drawHighlightedLinesSubset(int i, int first, int last) {
   for (int j = first; j < last+1; j++) {
       float Px = leftOffset + j*distanceBetweenAxes;
       float Qx = Px + distanceBetweenAxes;
-      // FIXME What if max and min are the same? Dividing by 0
       if (j == 0) {
         float Pfrac = ((float)tableData[i][j] - colMins[j]) / (colMaxes[j]- colMins[j]);
-        if (positiveAxis[j]) {
+        if (positiveAxisBottom[j]) {
           Py = Pfrac * (height - bottomOffset - topOffset) + topOffset;
         }
         else {
@@ -301,7 +289,7 @@ void drawHighlightedLinesSubset(int i, int first, int last) {
         Py = Qy;
       }
       float Qfrac = ((float)tableData[i][j+1] - colMins[j+1]) / (colMaxes[j+1] - colMins[j+1]);
-      if (positiveAxis[j+1]) {
+      if (positiveAxisBottom[j+1]) {
         Qy = Qfrac * (height - bottomOffset - topOffset) + topOffset;
       }
       else {
@@ -312,13 +300,22 @@ void drawHighlightedLinesSubset(int i, int first, int last) {
   }
 }
 
+void drawRectangle() {
+  // User-created rectangle (click and drag)
+  rectMode(CORNER);
+  strokeWeight(1);
+  fill(255,255,255, 0);
+  stroke(0,0,0);
+  rect(mouseXCoord, mouseYCoord, rectWidth, rectHeight);
+}
+
 void mouseClicked() {
   // Switch axis orientation
   if (Math.abs(mouseY - (height-bottomOffset+40)) <= 12/2) {
     for (int j = 0; j < numCols; j++) {
       int axisX = leftOffset + j*distanceBetweenAxes;
       if (Math.abs(mouseX - axisX) <= 12/2) {
-        positiveAxis[j] = !positiveAxis[j];
+        positiveAxisBottom[j] = !positiveAxisBottom[j];
       }
     }
   }
@@ -379,24 +376,25 @@ void mouseClicked() {
 }
 
 void mousePressed() {
-   // For use in mouseDragged
+  // Capture current mouseX and mouseY for starting rectangle coordinate
   mouseXCoord = mouseX;
   mouseYCoord = mouseY;
-  if (mouseDragged) {
-    mouseDragged = false;
+  // Clicking again after mouse was dragged clears rectangle
+  if (drawRectangle) {
+    drawRectangle = false;
   }
 }
 
 void mouseDragged() 
 {
   // Only called while mouse is being moved, even if still pressed
-  mouseDragged = true;
+  drawRectangle = true;
   rectWidth = mouseX-mouseXCoord;
   rectHeight = mouseY-mouseYCoord;
 }
 
-
 boolean checkSegmentRange(float Px, float Py, float Qx, float Qy, float x, float y) {
+  // Checks that line segment from (Px, Py) to (Qx, Qy) is in range from x to y
   boolean xInRange = false, yInRange = false;
   if (Px <= Qx && x >= Px && x <= Qx) {
       xInRange = true;
@@ -413,9 +411,10 @@ boolean checkSegmentRange(float Px, float Py, float Qx, float Qy, float x, float
   return (xInRange && yInRange);
 }
 
-boolean checkPointRange(float a, float b, float check) {
+boolean checkPointRange(float a, float b, float value) {
+  // Check that value is between a and b
   if (a <= b) {
-    if (check >= a && check <= b) {
+    if (value >= a && value <= b) {
       return true;
     }
     else {
@@ -423,7 +422,7 @@ boolean checkPointRange(float a, float b, float check) {
     }
   }
   else {
-    if (check < a && check > b) {
+    if (value < a && value > b) {
       return true;
     }
     else {
