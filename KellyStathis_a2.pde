@@ -269,6 +269,22 @@ void drawLines() {
       Qx += distanceBetweenAxes;
     }
   }
+  
+  // Add label for highlighted line
+  if (!drawRectangle) { // don't label everything highlighted by rectangle
+    int count = 0;
+    String labelText = "";
+    for (int i = 0; i < numRows; i++) {
+      if (highlightedRows[i]) { // Add to label text
+        if (count != 0) {
+          labelText += "; ";
+        }
+        labelText += rowNames[i];
+        count++;
+      }
+    }
+    text(labelText, mouseX, mouseY);
+  }
 }
 
 void drawHighlightedLinesSubset(int i, int first, int last) {
