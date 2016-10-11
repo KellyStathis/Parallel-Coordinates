@@ -60,7 +60,6 @@ void setup() {
   int r = 0;
   int b = 255;
   int interval = 255/(numRows-1);
-  println("interval: " + interval);
   for (int i = 0; i < numRows; i++) {
     highlightedRows[i] = false;
     gradientColors[i] = color(r, 0, b);
